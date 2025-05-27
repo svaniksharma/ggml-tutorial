@@ -1,10 +1,12 @@
 #ifndef TUTORIAL_GGML_H
 
-#include <string>
+#include <vector>
+#include <iostream>
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
 #include "ggml.h"
 #include "ggml-cpu.h"
+#include "ggml-opt.h"
 #include "ggml-cuda.h"
 
 class TutorialRegression {
@@ -37,6 +39,27 @@ private:
   struct ggml_tensor *_result;
 };
 
+class DataLoader {
+public:
+  DataLoader(const float matrix[][2], const size_t N) {
+    _dataset = ggml_opt_dataset_init(GGML_TYPE_F32, GGML_TYPE_F32, 1, 1, N, 1);
+    struct ggml_tensor *data = ggml_opt_dataset_data(_dataset);
+    struct ggml_tensor *labels = ggml_opt_dataset_labels(_dataset);
+    float *data_buf = ggml_get_data_f32(data);
+    float *labels_buf = ggml_get_data_f32(labels);
+    for (int i = 0; i < N; i++) {
+      data_buf[i] = matrix[i][0];
+      labels_buf[i] = matrix[i][1];
+    }
+  }
+  ggml_opt_dataset_t get_dataset() const { return _dataset; }
+  ~DataLoader() {
+    ggml_opt_dataset_free(_dataset);
+  }
+private:
+  ggml_opt_dataset_t _dataset;
+};
+
 class BackendRegression {
 public:
   BackendRegression() {
@@ -49,7 +72,9 @@ public:
     _a = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
     _b = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
     _x = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
-    ggml_set_param(_x);
+    ggml_set_input(_x);
+    ggml_set_param(_a);
+    ggml_set_param(_b);
     _backend = ggml_backend_cuda_init(0);
     _backend_buffer = ggml_backend_alloc_ctx_tensors(_ctx_static, _backend);
     params = {
@@ -61,14 +86,22 @@ public:
     struct ggml_tensor *ax = ggml_mul(_ctx_compute, _a, _x);
     _result = ggml_add(_ctx_compute, ax, _b);
     ggml_set_output(_result);
+    std::vector<ggml_backend_t> backends;
+    backends.push_back(_backend);
+    backends.push_back(ggml_backend_cpu_init());
+    _backend_sched = ggml_backend_sched_new(backends.data(), nullptr, backends.size(), GGML_DEFAULT_GRAPH_SIZE, false, true);
+    std::cout << "Using " << ggml_backend_name(_backend) << " as backend\n";
   }
   void set_params(const float a, const float b);
   float forward(const float x);
+  void train(const DataLoader &dl);
+  void print_params() const;
   ~BackendRegression() {
     ggml_free(_ctx_static);
     ggml_free(_ctx_compute);
     ggml_backend_free(_backend);
     ggml_backend_buffer_free(_backend_buffer);
+    ggml_backend_sched_free(_backend_sched);
   }
 private:
   struct ggml_tensor *_a;
@@ -79,6 +112,7 @@ private:
   struct ggml_context *_ctx_compute;
   struct ggml_backend *_backend;
   ggml_backend_buffer_t _backend_buffer;
+  ggml_backend_sched_t _backend_sched;
 };
 
 #endif // !TUTORIAL_GGML_H
