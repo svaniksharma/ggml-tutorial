@@ -18,12 +18,12 @@ float TutorialRegression::forward(const float x) {
 }
 
 void BackendRegression::set_params(const float a, const float b) {
-  ggml_set_f32(_a, a);
-  ggml_set_f32(_b, b);
+  ggml_backend_tensor_set(_a, &a, 0, ggml_nbytes(_a));
+  ggml_backend_tensor_set(_b, &b, 0, ggml_nbytes(_b));
 }
 
 float BackendRegression::forward(const float x) {
-  ggml_set_f32(_x, x);
+  ggml_backend_tensor_set(_x, &x, 0, ggml_nbytes(_x));
   struct ggml_cgraph *cf = ggml_new_graph(_ctx_compute);
   ggml_build_forward_expand(cf, _result);
   ggml_gallocr_t allocr = ggml_gallocr_new(ggml_backend_get_default_buffer_type(_backend));
@@ -34,7 +34,7 @@ float BackendRegression::forward(const float x) {
   return result;
 }
 
-int main (int argc, char *argv[]) {
+int main (int argc, char *argv[]) { 
   TutorialRegression regressor;
   regressor.set_params(3.0f, 4.0f);
   float result = regressor.forward(5.0f);

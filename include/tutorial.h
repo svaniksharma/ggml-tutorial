@@ -1,8 +1,11 @@
+#ifndef TUTORIAL_GGML_H
+
+#include <string>
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
-#ifndef TUTORIAL_GGML_H
 #include "ggml.h"
 #include "ggml-cpu.h"
+#include "ggml-cuda.h"
 
 class TutorialRegression {
 public:
@@ -47,7 +50,7 @@ public:
     _b = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
     _x = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
     ggml_set_param(_x);
-    _backend = ggml_backend_cpu_init();
+    _backend = ggml_backend_cuda_init(0);
     _backend_buffer = ggml_backend_alloc_ctx_tensors(_ctx_static, _backend);
     params = {
       ggml_tensor_overhead() * GGML_DEFAULT_GRAPH_SIZE + 3 * ggml_graph_overhead(),
