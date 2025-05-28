@@ -28,7 +28,6 @@ public:
     _a = ggml_new_tensor_1d(_ctx, GGML_TYPE_F32, 1);
     _b = ggml_new_tensor_1d(_ctx, GGML_TYPE_F32, 1);
     _x = ggml_new_tensor_1d(_ctx, GGML_TYPE_F32, 1);
-    ggml_set_param(_x);
     struct ggml_tensor *ax = ggml_mul(_ctx, _a, _x);
     _result = ggml_add(_ctx, ax, _b);
   }
