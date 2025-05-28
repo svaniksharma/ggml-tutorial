@@ -28,14 +28,11 @@ void BackendRegression::set_params(const float a, const float b) {
 
 float BackendRegression::forward(const float x) {
   ggml_backend_tensor_set(_x, &x, 0, ggml_nbytes(_x));
-  struct ggml_cgraph *cf = ggml_new_graph(_ctx_compute);
-  ggml_build_forward_expand(cf, _result);
-  ggml_gallocr_t allocr = ggml_gallocr_new(ggml_backend_get_default_buffer_type(_backend));
-  ggml_gallocr_alloc_graph(allocr, cf);
-  ggml_backend_graph_compute(_backend, cf);
-  float result = ggml_get_f32_1d(_result, 0);
-  ggml_gallocr_free(allocr);
-  return result;
+  ggml_backend_graph_compute(_backend, _gf);
+  struct ggml_tensor *result = ggml_graph_node(_gf, -1);
+  float result_data = 0;
+  ggml_backend_tensor_get(result, &result_data, 0, ggml_nbytes(result));
+  return result_data;
 }
 
 void BackendRegression::train(const DataLoader &dl) {
@@ -76,5 +73,15 @@ int main (int argc, char *argv[]) {
   backend_regressor.train(dl);
   std::cout << "Recovered parameters\n---------------\n";
   backend_regressor.print_params();
+  std::cout << "Evaluation on test data\n------------\n";
+  float test_x[] = { 15000.0f, 20000.0f, 30000.0f };
+  for (int i = 0; i < sizeof(test_x) / sizeof(float); i++) {
+    auto x = test_x[i];
+    float y = a * x + b;
+    float y_pred = backend_regressor.forward(x);
+    std::cout << "x = " << x << "\n";
+    std::cout << "y: " << y << "\n";
+    std::cout << "y pred: " << y_pred << "\n";
+  }
   return 0;
 }

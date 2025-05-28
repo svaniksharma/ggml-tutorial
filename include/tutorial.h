@@ -91,6 +91,10 @@ public:
     backends.push_back(ggml_backend_cpu_init());
     _backend_sched = ggml_backend_sched_new(backends.data(), nullptr, backends.size(), GGML_DEFAULT_GRAPH_SIZE, false, true);
     std::cout << "Using " << ggml_backend_name(_backend) << " as backend\n";
+    _gf = ggml_new_graph(_ctx_compute);
+    ggml_build_forward_expand(_gf, _result);
+    ggml_gallocr_t allocr = ggml_gallocr_new(ggml_backend_get_default_buffer_type(_backend));
+    ggml_gallocr_alloc_graph(allocr, _gf); 
   }
   void set_params(const float a, const float b);
   float forward(const float x);
@@ -102,6 +106,7 @@ public:
     ggml_backend_free(_backend);
     ggml_backend_buffer_free(_backend_buffer);
     ggml_backend_sched_free(_backend_sched);
+    ggml_gallocr_free(_allocr);
   }
 private:
   struct ggml_tensor *_a;
@@ -113,6 +118,8 @@ private:
   struct ggml_backend *_backend;
   ggml_backend_buffer_t _backend_buffer;
   ggml_backend_sched_t _backend_sched;
+  struct ggml_cgraph *_gf;
+  ggml_gallocr_t _allocr;
 };
 
 #endif // !TUTORIAL_GGML_H
