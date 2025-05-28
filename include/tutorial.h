@@ -1,6 +1,6 @@
-#include <type_traits>
 #ifndef TUTORIAL_GGML_H
 
+#include <type_traits>
 #include <vector>
 #include <iostream>
 #include "ggml-alloc.h"
@@ -14,7 +14,7 @@ class TutorialRegression {
 public:
   TutorialRegression() {
     struct ggml_init_params params {
-      16 * 1024 * 1024,
+      1024 * ggml_tensor_overhead(), 
       nullptr,
       false
     };
