@@ -89,7 +89,7 @@ class BackendRegression {
 public:
   BackendRegression() {
     // This can work for either double or float.
-    // Notice that .no_alloc is true here. We want BLAH BLAH
+    // Notice that .no_alloc is true here. We want to allocate memory explicitly.
     struct ggml_init_params params = {
       /* .mem_size = */ 1024 * ggml_tensor_overhead(),
       /* .mem_buffer = */ nullptr,
@@ -120,7 +120,7 @@ public:
     _backend = ggml_backend_cuda_init(0);
     _backend_buffer = ggml_backend_alloc_ctx_tensors(_ctx_static, _backend);
     // Now, we create the *compute* context. This is what does inference and training. 
-    // Again, .no_alloc = true because BLAH BLAH. Calculating the memory needed is easy
+    // Again, .no_alloc = true because we will explicitly allocate the graph. Calculating the memory needed is easy
     // and we don't have to allocate a sufficiently large amount or check with ggml_mem.
     // By default, GGML allocates 2048 nodes (GGML_DEFAULT_GRAPH_SIZE) when allocating a graph.
     // Each of the 2048 nodes carries overhead since they are essentially tensors. Since we are 
