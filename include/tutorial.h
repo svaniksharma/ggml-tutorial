@@ -1,3 +1,4 @@
+#include <type_traits>
 #ifndef TUTORIAL_GGML_H
 
 #include <vector>
@@ -39,14 +40,22 @@ private:
   struct ggml_tensor *_result;
 };
 
+template<typename T>
 class DataLoader {
 public:
   DataLoader(const float matrix[][2], const size_t N) {
-    _dataset = ggml_opt_dataset_init(GGML_TYPE_F32, GGML_TYPE_F32, 1, 1, N, 1);
+    enum ggml_type dataset_type;
+    if (std::is_same<T, float>::value)
+      dataset_type = GGML_TYPE_F32;
+    else if (std::is_same<T, double>::value)
+      dataset_type = GGML_TYPE_F64;
+    else
+      GGML_ASSERT(false);
+    _dataset = ggml_opt_dataset_init(dataset_type, dataset_type, 1, 1, N, 1);
     struct ggml_tensor *data = ggml_opt_dataset_data(_dataset);
     struct ggml_tensor *labels = ggml_opt_dataset_labels(_dataset);
-    float *data_buf = ggml_get_data_f32(data);
-    float *labels_buf = ggml_get_data_f32(labels);
+    T *data_buf = static_cast<T *>(ggml_get_data(data));
+    T *labels_buf = static_cast<T *>(ggml_get_data(labels));
     for (int i = 0; i < N; i++) {
       data_buf[i] = matrix[i][0];
       labels_buf[i] = matrix[i][1];
@@ -60,6 +69,7 @@ private:
   ggml_opt_dataset_t _dataset;
 };
 
+template <typename T>
 class BackendRegression {
 public:
   BackendRegression() {
@@ -68,10 +78,17 @@ public:
       nullptr,
       true
     };
+    enum ggml_type tensor_type;
+    if (std::is_same<T, float>::value)
+      tensor_type = GGML_TYPE_F32;
+    else if (std::is_same<T, double>::value)
+      tensor_type = GGML_TYPE_F64;
+    else
+      GGML_ASSERT(false);
     _ctx_static = ggml_init(params);
-    _a = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
-    _b = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
-    _x = ggml_new_tensor_1d(_ctx_static, GGML_TYPE_F32, 1);
+    _a = ggml_new_tensor_1d(_ctx_static, tensor_type, 1);
+    _b = ggml_new_tensor_1d(_ctx_static, tensor_type, 1);
+    _x = ggml_new_tensor_1d(_ctx_static, tensor_type, 1);
     ggml_set_input(_x);
     ggml_set_param(_a);
     ggml_set_param(_b);
@@ -96,9 +113,9 @@ public:
     ggml_gallocr_t allocr = ggml_gallocr_new(ggml_backend_get_default_buffer_type(_backend));
     ggml_gallocr_alloc_graph(allocr, _gf); 
   }
-  void set_params(const float a, const float b);
-  float forward(const float x);
-  void train(const DataLoader &dl);
+  void set_params(const T a, const T b);
+  float forward(const T x);
+  void train(const DataLoader<T> &dl);
   void print_params() const;
   ~BackendRegression() {
     ggml_free(_ctx_static);

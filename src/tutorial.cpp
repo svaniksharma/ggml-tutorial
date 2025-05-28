@@ -21,12 +21,14 @@ float TutorialRegression::forward(const float x) {
   return ggml_get_f32_1d(_result, 0);
 }
 
-void BackendRegression::set_params(const float a, const float b) {
+template<typename T>
+void BackendRegression<T>::set_params(const T a, const T b) {
   ggml_backend_tensor_set(_a, &a, 0, ggml_nbytes(_a));
   ggml_backend_tensor_set(_b, &b, 0, ggml_nbytes(_b));
 }
 
-float BackendRegression::forward(const float x) {
+template <typename T>
+float BackendRegression<T>::forward(const T x) {
   ggml_backend_tensor_set(_x, &x, 0, ggml_nbytes(_x));
   ggml_backend_graph_compute(_backend, _gf);
   struct ggml_tensor *result = ggml_graph_node(_gf, -1);
@@ -35,11 +37,13 @@ float BackendRegression::forward(const float x) {
   return result_data;
 }
 
-void BackendRegression::train(const DataLoader &dl) {
+template<typename T>
+void BackendRegression<T>::train(const DataLoader<T> &dl) {
   ggml_opt_fit(_backend_sched, _ctx_compute, _x, _result, dl.get_dataset(), GGML_OPT_LOSS_TYPE_MEAN_SQUARED_ERROR, ggml_opt_get_default_optimizer_params, 5, 1, 0.2f, true);
 }
 
-void BackendRegression::print_params() const {
+template<typename T>
+void BackendRegression<T>::print_params() const {
   float a = 0;
   float b = 0;
   ggml_backend_tensor_get(_a, &a, 0, ggml_nbytes(_a));
@@ -53,7 +57,7 @@ int main (int argc, char *argv[]) {
   regressor.set_params(3.0f, 4.0f);
   float result = regressor.forward(5.0f);
   std::cout << "Tutorial Result: " << result << "\n";
-  BackendRegression backend_regressor;
+  BackendRegression<float> backend_regressor;
   backend_regressor.set_params(3.0f, 4.0f);
   result = regressor.forward(5.0f);
   std::cout << "Backend result: " << result << "\n";
@@ -69,7 +73,7 @@ int main (int argc, char *argv[]) {
     matrix[i][0] = static_cast<float>(i+1);
     matrix[i][1] = a * matrix[i][0] + b;
   }
-  DataLoader dl(matrix, N);
+  DataLoader<float> dl(matrix, N);
   backend_regressor.train(dl);
   std::cout << "Recovered parameters\n---------------\n";
   backend_regressor.print_params();
