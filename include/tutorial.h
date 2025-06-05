@@ -1,4 +1,5 @@
 #ifndef TUTORIAL_GGML_H
+#define TUTORIAL_GGML_H
 
 #include <type_traits>
 #include <vector>
@@ -8,7 +9,9 @@
 #include "ggml.h"
 #include "ggml-cpu.h"
 #include "ggml-opt.h"
+#ifdef GGML_CUDA
 #include "ggml-cuda.h"
+#endif
 
 class TutorialRegression {
 public:
@@ -116,7 +119,11 @@ public:
     // Now we initialize the backend. In this case, we use CUDA as the backend.
     // The backend buffer is returned after we allocate the tensors using the static context + backend.
     // We will need to keep the backend buffer to free it later.
+    #ifdef GGML_CUDA
     _backend = ggml_backend_cuda_init(0);
+    #else
+    _backend = ggml_backend_cpu_init();
+    #endif
     _backend_buffer = ggml_backend_alloc_ctx_tensors(_ctx_static, _backend);
     // Now, we create the *compute* context. This is what does inference and training. 
     // Again, .no_alloc = true because we will explicitly allocate the graph. Calculating the memory needed is easy
@@ -139,8 +146,12 @@ public:
     // at once for inference and training. In this case, we really only need it to fit the model. We push the CPU
     // backend as well since it is required as a fallback.
     std::vector<ggml_backend_t> backends;
+    #ifdef GGML_CUDA
     backends.push_back(_backend);
     backends.push_back(ggml_backend_cpu_init());
+    #else
+    backends.push_back(_backend);
+    #endif
     _backend_sched = ggml_backend_sched_new(backends.data(), nullptr, backends.size(), GGML_DEFAULT_GRAPH_SIZE, false, true);
     std::cout << "Using " << ggml_backend_name(_backend) << " as backend\n";
     // After constructing the computational graph, we need to allocate the graph.

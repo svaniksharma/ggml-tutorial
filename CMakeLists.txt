@@ -18,8 +18,16 @@ set(cxx_flags
   -g
 )
 target_compile_options(tutorial PUBLIC ${cxx_flags})
+
+if (EMSCRIPTEN)
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -pthread")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  set_target_properties(tutorial PROPERTIES LINK_FLAGS "-s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE_STRICT=0 -s SINGLE_FILE")
+endif()
+
 add_subdirectory(extern/ggml)
 target_link_libraries(tutorial PRIVATE ggml)
+
 
 if (GGML_CUDA)
   add_compile_definitions(GGML_USE_CUDA)

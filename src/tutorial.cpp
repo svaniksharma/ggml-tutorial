@@ -79,7 +79,7 @@ void BackendRegression<T>::print_params() const {
   std::cout << "b: " << b << "\n";
 }
 
-int main (int argc, char *argv[]) { 
+int main() { 
   /* TutorialRegression: Compute a * x + b where a = 3, b = 4, x = 5, (end result should be 19) */
   TutorialRegression regressor;
   regressor.set_params(3.0f, 4.0f);
@@ -90,6 +90,8 @@ int main (int argc, char *argv[]) {
   backend_regressor.set_params(3.0f, 4.0f);
   result = regressor.forward(5.0f);
   std::cout << "Backend result: " << result << "\n";
+  // This part does not run using WASM.
+#ifndef EMSCRIPTEN
   /* Create 10000 datapoints; first column is x, second column is y. This is our "dataset" */
   const int N = 10000;
   float matrix[N][2];
@@ -122,5 +124,6 @@ int main (int argc, char *argv[]) {
     std::cout << "y: " << y << "\n";
     std::cout << "y pred: " << y_pred << "\n";
   }
+#endif
   return 0;
 }
